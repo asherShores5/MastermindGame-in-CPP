@@ -3,260 +3,121 @@
 //CST-210
 //This is my own work
 
-using namespace std;
 #include <iostream>
 #include <ctime>
 #include <string>
 
 class board {
-
-//private data includes hint pegs and the code array itself
 private:
-char w, x, y, z;
-char cipher[4];
-char tempArray[4];
-char tempCipher[4];
-bool toggleDuplicates = false;
-char firstPos, secondPos, thirdPos, fourthPos;
-int count;
-int blackCounter; 
-int whiteCounter;
+    char w, x, y, z;
+    char cipher[4];
+    char tempArray[4];
+    char tempCipher[4];
+    int count;
+    int blackCounter; 
+    int whiteCounter;
 
+    void determineHints();
+    void genBoardLine();
 
 public:
+    board() : count(10) {}
 
-//------------------------------------//
-//overloaded operator bs ahahaha
-board() : count(10) {}
+    void operator-- () {
+        --count;
+    }
 
-//overloads -- because I never use it
-//changes the private int count to one less
-//allows user to check in main what their number of guesses is left
-void operator -- () {
+    void display() const {
+        std::cout << count << std::endl;
+    }
 
-  --count;
-  
-}
-
-void display() {
-  cout << count << endl;
-}
-//------------------------------------//
-
-
-void boardBuilder(char firstPos, char secondPos, char thirdPos, char fourthPos) {
-  this->firstPos = firstPos;
-  this->secondPos = secondPos;
-  this->thirdPos = thirdPos;
-  this->fourthPos = fourthPos;
-
-  //run function for determining what hints to give this round
-  determineHints();
-
-  //generates single board line for cleaner look
-  genBoardLine();
-  
-  //displays all color-coded pegs as given by user
-  //displays newly determined hint peg values
-  cout << "| " << firstPos << " | " << secondPos 
-  << " | " <<  thirdPos << " | " << fourthPos << " | ";
-  cout << w << " | " << x << " | " << 
-  y << " | " << z << " |" << endl;
-  //closes this round's board
-  genBoardLine();
-
-  cout << endl << "White Pegs: " << whiteCounter;
-  cout << endl << "Black Pegs: " << blackCounter;
-  cout << endl;
-
-  return;
+    void boardBuilder(char firstPos, char secondPos, char thirdPos, char fourthPos);
+    bool checkWin(char firstPos, char secondPos, char thirdPos, char fourthPos) const;
+    void genCipher();
+    void revealCode();
 };
 
-//method for determining hints to help user
-void determineHints() {
+// Method implementations
 
-  //initally sets all pegs to default state and overwrites if necessary
-  w = 'X';
-  x = 'X';
-  y = 'X';
-  z = 'X';
+void board::boardBuilder(char firstPos, char secondPos, char thirdPos, char fourthPos) {
+    tempArray[0] = firstPos;
+    tempArray[1] = secondPos;
+    tempArray[2] = thirdPos;
+    tempArray[3] = fourthPos;
 
-  //counters for black and white pegs and 
-  //black and white pegs
-  blackCounter = 0;
-  whiteCounter = 0;
+    determineHints();
 
-  //puts user cipher guess into temp array
-  tempArray[0] = firstPos;
-  tempArray[1] = secondPos;
-  tempArray[2] = thirdPos;
-  tempArray[3] = fourthPos;
+    genBoardLine();
+    std::cout << "| " << firstPos << " | " << secondPos 
+              << " | " << thirdPos << " | " << fourthPos << " | "
+              << w << " | " << x << " | " << y << " | " << z << " |" << std::endl;
+    genBoardLine();
 
-  //puts user cipher guess into temp array
-  tempCipher[0] = cipher[0];
-  tempCipher[1] = cipher[1];
-  tempCipher[2] = cipher[2];
-  tempCipher[3] = cipher[3];
+    std::cout << "\nWhite Pegs: " << whiteCounter;
+    std::cout << "\nBlack Pegs: " << blackCounter;
+    std::cout << std::endl;
+}
 
-  //Temp arrays are created so that I can overwrite the data
-  //when calculating the black and white pegs
+void board::determineHints() {
+    w = x = y = z = 'X';
+    blackCounter = whiteCounter = 0;
 
-  //Most difficult part here
-  //Have to make sure pegs are not counted twice when the code contains
-  //more than one peg of the same color
-  //check for if any correct colors out of place were found
+    for (int i = 0; i < 4; ++i) {
+        tempCipher[i] = cipher[i];
+        if (tempArray[i] == tempCipher[i]) {
+            blackCounter++;
+            tempArray[i] = 'Q';
+            tempCipher[i] = 'Z';
+        }
+    }
 
-  //nested for loop to determine both black and white pegs
-  for (int i = 0; i < 4; i++){
-
-    //count black pegs based on if the user input matches the code
-    //at the exact same i position in the same sized arrays
-    if (tempArray[i] == tempCipher[i]){
-      blackCounter++;
-
-      //once counted they are converted to nonsense so they cannot be
-      //counted again by the white peg detector
-      tempArray[i] = 'Q';
-      tempCipher[i] = 'Z';
-    } else {
-
-      //loop for white pegs
-      //checks if position is wrong but color is correct
-      for (int m = 0; m < 4; m++){
-        if (tempArray[i] == tempCipher[m] &&
-            tempArray[m] != tempCipher[m]) {
-              whiteCounter++;
-
-      //once counted they are converted to nonsense so they cannot be
-      //counted again by the white peg detector
-              tempCipher[m] = 'Q';
-              tempArray[i] = 'Z';
-              break;
+    for (int i = 0; i < 4; ++i) {
+        if (tempArray[i] != 'Q') {
+            for (int j = 0; j < 4; ++j) {
+                if (tempArray[i] == tempCipher[j]) {
+                    whiteCounter++;
+                    tempCipher[j] = 'Z';
+                    break;
+                }
             }
-      }
-
+        }
     }
 
-  }
-
-
-  //overwrites default pegs to white color for every true white peg calculated
-
-  //white goes from right to left
-  if (whiteCounter > 0) {
-    z = 'W';
-  }
-  if (whiteCounter > 1) {
-    y = 'W';
-  }
-  if (whiteCounter > 2) {
-    x = 'W';
-  }
-  if (whiteCounter > 3) {
-    w = 'W';
-  } 
-
-
-
-  //black pegs take priority over white pegs and a black can be true for
-  //one while white is also true so printing over white is useful
-  //set black peg hints
-  //black goes from left to right
-  if (blackCounter > 0){
-    w = 'B';
-  }
-  if (blackCounter > 1){
-    x = 'B';
-  }
-  if (blackCounter > 2){
-    y = 'B';
-  }
-  if (blackCounter > 3){
-    z = 'B';
-  }
-
-};
-//end of determine hints method
-
-
-//checkpoint
-//method for checking win by if each position corresponds to the position in cipher
-bool checkWin() {
-  if (firstPos == cipher[0] && secondPos == cipher[1] && thirdPos == cipher[2] && fourthPos == cipher[3]){
-    return true; }
-  else {
-    return false;
-  }
+    w = blackCounter > 0 ? 'B' : (whiteCounter > 0 ? 'W' : 'X');
+    x = blackCounter > 1 ? 'B' : (whiteCounter > 1 ? 'W' : 'X');
+    y = blackCounter > 2 ? 'B' : (whiteCounter > 2 ? 'W' : 'X');
+    z = blackCounter > 3 ? 'B' : (whiteCounter > 3 ? 'W' : 'X');
 }
 
-//generic board line method discussed above
-void genBoardLine() {
-  cout << "|---------------|---------------|" << endl;
-  return ;
-}; 
+bool board::checkWin(char firstPos, char secondPos, char thirdPos, char fourthPos) const {
+    return firstPos == cipher[0] && secondPos == cipher[1] && thirdPos == cipher[2] && fourthPos == cipher[3];
+}
 
+void board::genBoardLine() {
+    std::cout << "|---------------|---------------|" << std::endl;
+}
 
-//generates random numbers for the code using ctime
-//each integer 1 - 6 corresponds to a possible color
-void genCipher() {
-
-  int num;
-  srand(time(0));
-
-  for (int i = 0; i < 4; i++) {
-
-    num = rand() % 6 + 1;
-
-      if (num == 1){
-      cipher[i] = 'b';
-    } else if (num == 2){
-      cipher[i] = 'g';
-    } else if (num == 3){
-      cipher[i] = 'o';
-    } else if (num == 4){
-      cipher[i] = 'p';
-    } else if (num == 5){
-      cipher[i] = 'r';
-    } else if (num == 6){
-      cipher[i] = 'y';
+void board::genCipher() {
+    srand(time(0));
+    for (int i = 0; i < 4; ++i) {
+        int num = rand() % 6 + 1;
+        cipher[i] = num == 1 ? 'b' : num == 2 ? 'g' : num == 3 ? 'o' : num == 4 ? 'p' : num == 5 ? 'r' : 'y';
     }
-  }
 
-  //DEBUG
-  //Tool for seeing cipher at beginning
-  cout << endl << "DEBUG" << endl;
-  for (int i = 0; i < 4; i++){
-  cout << cipher[i];
-  }
-
-return;
-};
-
-
-//method for revealing code for both win and lose conditions
-//also resets the values of the hint pegs for replay since that
-//cannot be done from main.cpp
-//has no affect on win condition though
-void revealCode(){
-  
-  cout << endl << "The code was..." << endl << endl;
-
-  for (int i = 0; i < 4; i++){
-    
-    cout << (cipher[i]);
-
-  }
-
-  //sets up right side pegs in default state for next game
-  //can only be done in this class so this made logical sense
-  w = 'X';
-  x = 'X';
-  y = 'X';
-  z = 'X';
-
-  return;
+    // DEBUG
+    std::cout << "\nDEBUG\n";
+    for (int i = 0; i < 4; ++i) {
+        std::cout << cipher[i];
+    }
+    std::cout << std::endl;
 }
 
+void board::revealCode() {
+    std::cout << "\nThe code was...\n\n";
+    for (int i = 0; i < 4; ++i) {
+        std::cout << cipher[i];
+    }
+    std::cout << std::endl;
 
-//end of board class
-};
+    w = x = y = z = 'X';
+}
